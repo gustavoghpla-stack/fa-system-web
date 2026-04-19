@@ -333,19 +333,14 @@ export async function syncGS(silent = false): Promise<boolean> {
   const url = (DB.getObj('config') || {}).gsUrl;
   if (!url) { if (!silent) alert('URL do Google Sheets não configurada!'); return false; }
 
-  // Strip senha before sending to planilha — never expose password hashes externally
-  const usersToSync = DB.get<Usuario>('users').map(u => ({
-    id: u.id, nome: u.nome, email: u.email,
-    nivel: u.nivel, foto: u.foto, cadastrado: u.cadastrado,
-  }));
-
+  // Send full user object including senha (hashed) so login works on other devices
   const payload = {
     acao: 'sync_all',
     func: DB.get<Funcionario>('func'),
     bancos: DB.get<BancoRegistro>('bancos'),
     escalas: DB.get<Escala>('escalas'),
     docs: DB.get<Documento>('docs'),
-    users: usersToSync,
+    users: DB.get<Usuario>('users'),
     fluxo_caixa: DB.get<FluxoCaixaRegistro>('fluxo_caixa'),
   };
   try {

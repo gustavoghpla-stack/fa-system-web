@@ -40,22 +40,49 @@ async function auditarGAS(url: string, nome: string): Promise<TestResult[]> {
       return results;
     }
 
+    // Tenta parsear JSON
     let parsed: any = null;
-    try { parsed = JSON.parse(r.body); } catch { /* noop */ }
+    let parseError = '';
+    try { parsed = JSON.parse(r.body); } catch (e: any) { parseError = e.message; }
 
     if (!parsed) {
-      results.push({ name: `${nome}: Formato`, status: 'error', message: 'Resposta não é JSON válido', detail: r.body.slice(0, 300) });
+      // Detecta formato antigo (texto puro como "PONG" ou "OK")
+      const body = r.body.trim();
+      const isPlainText = body === 'PONG' || body === 'OK' || body.startsWith('FA ') || (!body.startsWith('{') && !body.startsWith('<'));
+      const isHtml = body.startsWith('<');
+
+      if (isHtml) {
+        results.push({
+          name: `${nome}: ⚠️ Deploy incorreto`,
+          status: 'error',
+          message: 'GAS retornou HTML em vez de JSON — provavelmente sem permissão ou URL errada',
+          detail: 'Verifique se a URL está correta e se o deploy foi feito como "Qualquer pessoa"'
+        });
+      } else if (isPlainText) {
+        results.push({
+          name: `${nome}: ⚠️ Script Desatualizado (texto puro)`,
+          status: 'error',
+          message: `Script antigo retorna texto "${body.slice(0,30)}" em vez de JSON`,
+          detail: `Atualize o script em script.google.com → cole o código do arquivo gas/script-estoque.gs → Nova Implantação → "Qualquer pessoa"`
+        });
+      } else {
+        results.push({
+          name: `${nome}: Formato inválido`,
+          status: 'error',
+          message: `Resposta não é JSON válido: ${parseError}`,
+          detail: `Resposta recebida: ${body.slice(0, 200)}`
+        });
+      }
       return results;
     }
 
     // Detecta script ANTIGO — usa {status:"ok"} em vez de {ok:true}
-    // Bug do script antigo: tinha "if (data.length > 0)" que impedia deletes
     if (parsed.status === 'ok' && parsed.ok === undefined) {
       results.push({
         name: `${nome}: ⚠️ Script Desatualizado`,
         status: 'error',
-        message: 'Resposta {status:"ok"} = script ANTIGO. Deletes NÃO funcionam.',
-        detail: `Substitua o código no GAS pelo script atualizado e reimplante como Nova Implantação. Resposta atual: ${r.body.slice(0, 150)}`
+        message: 'Resposta {status:"ok"} = script ANTIGO — deletes NÃO funcionam',
+        detail: `Cole o código do arquivo gas/ correspondente no script.google.com e faça Nova Implantação → "Qualquer pessoa". Resposta atual: ${r.body.slice(0, 100)}`
       });
       return results;
     }
@@ -67,11 +94,21 @@ async function auditarGAS(url: string, nome: string): Promise<TestResult[]> {
         message: `✅ Atualizado — ${parsed.msg || 'OK'} (v${parsed.version || '?'})`
       });
     } else {
-      results.push({ name: `${nome}: Resposta`, status: 'warn', message: 'Formato inesperado no ping', detail: JSON.stringify(parsed) });
+      results.push({
+        name: `${nome}: Resposta`,
+        status: 'warn',
+        message: 'Formato inesperado no ping',
+        detail: JSON.stringify(parsed).slice(0, 200)
+      });
     }
 
   } catch (e: any) {
-    results.push({ name: `${nome}: Conexão`, status: 'error', message: '❌ Erro de rede: ' + e.message });
+    results.push({
+      name: `${nome}: Conexão`,
+      status: 'error',
+      message: '❌ Erro de rede: ' + e.message,
+      detail: 'Verifique se a URL está correta e o GAS está implantado.'
+    });
   }
 
   return results;
