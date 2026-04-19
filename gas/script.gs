@@ -29,7 +29,7 @@ var HEADERS = {
   bancos:      ['id','funcId','funcNome','banco','codigo','agencia','conta','tipo','tipopix','chavepix','obs','cadastrado'],
   escalas:     ['id','desc','cadastrado'],
   docs:        ['id','desc','obrig'],
-  users:       ['id','nome','email','senha','nivel','foto','cadastrado'],
+  users:       ['id','nome','email','nivel','foto','cadastrado'],
   fluxo_caixa: ['id','tipo','descricao','valor','data','categoria','obs','cadastrado'],
 };
 

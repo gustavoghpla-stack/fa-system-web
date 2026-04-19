@@ -7,15 +7,7 @@ function esc(s: string | undefined): string {
 
 export function printFuncionarioPDF(f: Funcionario) {
   const win = window.open('', '_blank', 'width=900,height=700');
-  if (!win) {
-    // Mobile fallback: open in same tab
-    const fallbackWin = window.open() as Window;
-    if (!fallbackWin) { alert('Não foi possível abrir o PDF. Permita popups no navegador.'); return; }
-    const html = getPrintHtml(f);
-    fallbackWin.document.write(html);
-    fallbackWin.document.close();
-    return;
-  }
+  if (!win) { alert('Popup bloqueado! Permita popups para imprimir.'); return; }
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
