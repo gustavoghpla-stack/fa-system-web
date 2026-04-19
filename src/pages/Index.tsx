@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/lib/db';
 import LoginScreen from '@/components/LoginScreen';
+import bacamarteLogoImg from '@/assets/bacamarte-logo.png';
 import AppLayout from '@/components/AppLayout';
 import MenuPage from '@/pages/MenuPage';
 import FuncionariosPage from '@/pages/FuncionariosPage';
@@ -54,8 +55,13 @@ export default function Index() {
   // Loading screen while syncing sheets on login
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-background flex flex-col items-center justify-center gap-5">
-        <div className="w-20 h-20 rounded-full bg-primary/20 border-2 border-primary animate-pulse flex items-center justify-center text-[32px]">⭐</div>
+      <div className="fixed inset-0 bg-background flex flex-col items-center justify-center gap-5 px-4">
+        <img
+          src={bacamarteLogoImg}
+          alt="Bacamarte Dev Company"
+          className="h-16 sm:h-20 object-contain animate-pulse"
+          style={{ filter: 'drop-shadow(0 0 12px hsl(var(--primary)/0.4))' }}
+        />
         <div className="text-center space-y-1.5">
           <div className="text-[16px] font-bold text-primary">Carregando dados...</div>
           <div className="text-[12px] text-muted-foreground">Sincronizando com as planilhas Google</div>
