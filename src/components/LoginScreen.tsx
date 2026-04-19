@@ -17,7 +17,7 @@ export default function LoginScreen() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-background"
       style={{ background: 'radial-gradient(ellipse 55% 45% at 50% 50%, hsl(var(--gold-glow)), transparent 70%), hsl(var(--background))' }}>
-      <div className="animate-fade-up bg-popover border border-primary/50 rounded-xl p-11 w-[400px] shadow-2xl">
+      <div className="animate-fade-up bg-popover border border-primary/50 rounded-xl p-7 sm:p-11 w-[92%] max-w-[400px] shadow-2xl mx-4">
         <div className="text-center mb-6">
           <div className="w-[90px] h-[90px] rounded-full mx-auto overflow-hidden shadow-[0_0_30px_hsl(var(--gold)/0.3)]">
             <img src={logoImg} alt="F&A Higienizações" className="w-full h-full object-cover" />

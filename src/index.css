@@ -180,3 +180,27 @@
 .animate-slide-up {
   animation: slideUp 0.22s ease;
 }
+
+/* ── Mobile safe area / responsive utilities ── */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Ensure tables scroll horizontally on mobile */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Larger touch targets on mobile */
+@media (max-width: 767px) {
+  button, [role="button"] {
+    min-height: 36px;
+  }
+  /* Prevent text overflow in tables */
+  td, th {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

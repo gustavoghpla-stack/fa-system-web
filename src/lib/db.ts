@@ -332,13 +332,20 @@ function describeHttpError(status: number, sheetName: string): string {
 export async function syncGS(silent = false): Promise<boolean> {
   const url = (DB.getObj('config') || {}).gsUrl;
   if (!url) { if (!silent) alert('URL do Google Sheets não configurada!'); return false; }
+
+  // Strip senha before sending to planilha — never expose password hashes externally
+  const usersToSync = DB.get<Usuario>('users').map(u => ({
+    id: u.id, nome: u.nome, email: u.email,
+    nivel: u.nivel, foto: u.foto, cadastrado: u.cadastrado,
+  }));
+
   const payload = {
     acao: 'sync_all',
     func: DB.get<Funcionario>('func'),
     bancos: DB.get<BancoRegistro>('bancos'),
     escalas: DB.get<Escala>('escalas'),
     docs: DB.get<Documento>('docs'),
-    users: DB.get<Usuario>('users'),
+    users: usersToSync,
     fluxo_caixa: DB.get<FluxoCaixaRegistro>('fluxo_caixa'),
   };
   try {
@@ -566,4 +573,88 @@ export function getBackupOffline() {
 
 export function deleteBackupOffline() {
   localStorage.removeItem('fa_backup_offline');
+}
+
+// ─── Carrega todas as planilhas ao fazer login ────────────────
+// Não exibe alertas, não recarrega a página — só atualiza os dados
+// localmente via setNoSync. Ideal para chamar após login bem-sucedido.
+export async function loadAllFromGS(): Promise<{ ok: boolean; errors: string[] }> {
+  const cfg = DB.getObj('config');
+  const errors: string[] = [];
+
+  const tasks: Promise<void>[] = [];
+
+  // RH (funcionários, usuários, bancos, escalas, docs)
+  if (cfg.gsUrl) {
+    tasks.push((async () => {
+      try {
+        const r = await gsFetch(cfg.gsUrl + '?acao=get_all');
+        if (r.ok) {
+          const d = JSON.parse(r.body);
+          if (d.func)        DB.setNoSync('func',        d.func);
+          if (d.bancos)      DB.setNoSync('bancos',      d.bancos);
+          if (d.escalas)     DB.setNoSync('escalas',     d.escalas);
+          if (d.docs)        DB.setNoSync('docs',        d.docs);
+          if (d.users)       DB.setNoSync('users',       d.users);
+          if (d.fluxo_caixa) DB.setNoSync('fluxo_caixa', d.fluxo_caixa);
+        } else {
+          errors.push('RH: HTTP ' + r.status);
+        }
+      } catch (e: any) { errors.push('RH: ' + e.message); }
+    })());
+  }
+
+  // Estoque
+  if (cfg.gsUrlEstoque) {
+    tasks.push((async () => {
+      try {
+        const r = await gsFetch(cfg.gsUrlEstoque + '?acao=get_all');
+        if (r.ok) {
+          const d = JSON.parse(r.body);
+          if (d.estoque)        DB.setNoSync('estoque',        d.estoque);
+          if (d.estoque_mov)    DB.setNoSync('estoque_mov',    d.estoque_mov);
+          if (d.veiculos)       DB.setNoSync('veiculos',       d.veiculos);
+          if (d.abastecimentos) DB.setNoSync('abastecimentos', d.abastecimentos);
+        } else {
+          errors.push('Estoque: HTTP ' + r.status);
+        }
+      } catch (e: any) { errors.push('Estoque: ' + e.message); }
+    })());
+  }
+
+  // Financeiro
+  if (cfg.gsUrlFluxo) {
+    tasks.push((async () => {
+      try {
+        const r = await gsFetch(cfg.gsUrlFluxo + '?acao=get_all');
+        if (r.ok) {
+          const d = JSON.parse(r.body);
+          if (d.fluxo_caixa)  DB.setNoSync('fluxo_caixa',  d.fluxo_caixa);
+          if (d.custos_fixos) DB.setNoSync('custos_fixos', d.custos_fixos);
+        } else {
+          errors.push('Financeiro: HTTP ' + r.status);
+        }
+      } catch (e: any) { errors.push('Financeiro: ' + e.message); }
+    })());
+  }
+
+  // Equipe
+  if (cfg.gsUrlEquipe) {
+    tasks.push((async () => {
+      try {
+        const r = await gsFetch(cfg.gsUrlEquipe + '?acao=get_all');
+        if (r.ok) {
+          const d = JSON.parse(r.body);
+          if (d.equipe_avaliacoes) DB.setNoSync('equipe_avaliacoes', d.equipe_avaliacoes);
+        } else {
+          errors.push('Equipe: HTTP ' + r.status);
+        }
+      } catch (e: any) { errors.push('Equipe: ' + e.message); }
+    })());
+  }
+
+  // Aguarda todas em paralelo
+  await Promise.allSettled(tasks);
+
+  return { ok: errors.length === 0, errors };
 }

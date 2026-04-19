@@ -40,7 +40,7 @@ const PAGE_FEATURE: Record<string, string> = {
 };
 
 export default function Index() {
-  const { session, permissionsVersion } = useAuth();
+  const { session, loading, permissionsVersion } = useAuth();
   const [currentPage, setCurrentPage] = useState('menu');
   const [theme, setTheme] = useState<'dark' | 'light' | 'orange'>('dark');
 
@@ -50,6 +50,24 @@ export default function Index() {
     document.body.classList.remove('light', 'orange');
     if (next !== 'dark') document.body.classList.add(next);
   };
+
+  // Loading screen while syncing sheets on login
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-background flex flex-col items-center justify-center gap-5">
+        <div className="w-20 h-20 rounded-full bg-primary/20 border-2 border-primary animate-pulse flex items-center justify-center text-[32px]">⭐</div>
+        <div className="text-center space-y-1.5">
+          <div className="text-[16px] font-bold text-primary">Carregando dados...</div>
+          <div className="text-[12px] text-muted-foreground">Sincronizando com as planilhas Google</div>
+        </div>
+        <div className="flex gap-1.5 mt-2">
+          {[0,1,2].map(i => (
+            <div key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (!session) return <LoginScreen />;
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DB, nextId, hashPassword, isPasswordHash, type Usuario, logAcesso } from '@/lib/db';
+import { DB, nextId, hashPassword, isPasswordHash, syncGS, type Usuario, logAcesso } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader, TableWrapper, Th, Td, Badge, Btn, Modal, FormCard, Field, Input } from '@/components/ui-custom';
 
@@ -21,8 +21,10 @@ export default function UsuariosPage() {
   });
 
   const del = (id: number) => {
-    if (!confirm('Excluir este usuário?')) return;
+    if (!confirm('Excluir este usuário? Será removido também da planilha.')) return;
     DB.set('users', DB.get<Usuario>('users').filter(x => x.id !== id));
+    logAcesso('Excluiu usuário ID ' + id, session!.name, session!.user);
+    syncGS(true); // sync imediato além do auto-sync de 800ms
     refresh();
   };
 
@@ -120,6 +122,7 @@ function UserModal({ editId, onClose, session, isMaster }: {
     }
     DB.set('users', list);
     logAcesso((editId ? 'Editou' : 'Cadastrou') + ' usuário: ' + email, session.name, session.user);
+    syncGS(true); // sync imediato para garantir que aparece na planilha
     onClose();
   };
 
