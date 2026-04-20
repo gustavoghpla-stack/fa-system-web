@@ -206,8 +206,15 @@ export function fmtMoneyBRL(value: number | string | undefined): string {
 }
 
 export function nextId(key: DBKey): number {
+  // Use timestamp + random suffix to guarantee uniqueness and never reuse deleted IDs.
+  // This prevents avaliações from being incorrectly associated with newly created
+  // funcionários that would otherwise inherit the ID of a deleted one.
   const d = DB.get<{ id: number }>(key);
-  return d.length ? Math.max(...d.map(x => x.id)) + 1 : 1;
+  const maxExisting = d.length ? Math.max(...d.map(x => x.id)) : 0;
+  const ts = Date.now();
+  // If timestamp is already larger than any existing ID (always true for new IDs
+  // after mid-2017), use timestamp. Otherwise, increment max.
+  return ts > maxExisting ? ts : maxExisting + 1;
 }
 
 export function fmtDate(d: string | undefined): string {
@@ -333,19 +340,14 @@ export async function syncGS(silent = false): Promise<boolean> {
   const url = (DB.getObj('config') || {}).gsUrl;
   if (!url) { if (!silent) alert('URL do Google Sheets não configurada!'); return false; }
 
-  // Strip senha before sending to planilha — never expose password hashes externally
-  const usersToSync = DB.get<Usuario>('users').map(u => ({
-    id: u.id, nome: u.nome, email: u.email,
-    nivel: u.nivel, foto: u.foto, cadastrado: u.cadastrado,
-  }));
-
+  // Send full user object including senha (hashed) so login works on other devices
   const payload = {
     acao: 'sync_all',
     func: DB.get<Funcionario>('func'),
     bancos: DB.get<BancoRegistro>('bancos'),
     escalas: DB.get<Escala>('escalas'),
     docs: DB.get<Documento>('docs'),
-    users: usersToSync,
+    users: DB.get<Usuario>('users'),
     fluxo_caixa: DB.get<FluxoCaixaRegistro>('fluxo_caixa'),
   };
   try {

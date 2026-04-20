@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { DB, nextId, fmtDate, syncGS, loadFromGS, type Funcionario, UF_OPTIONS, type Escala } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
 import { logAcesso } from '@/lib/db';
-import { PageHeader, StatCard, TableWrapper, Th, Td, Badge, Btn, Modal, FormCard, Field, Input, Select, CurrencyInput } from '@/components/ui-custom';
+import { PageHeader, StatCard, TableWrapper, Th, Td, Badge, Btn, Modal, FormCard, Field, Input, Select, CurrencyInput, ConfirmModal } from '@/components/ui-custom';
 import { printFuncionarioPDF, printListaFuncionarios } from '@/lib/pdfFuncionario';
 
 export default function FuncionariosPage() {
@@ -12,9 +12,9 @@ export default function FuncionariosPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [, setTick] = useState(0);
   const refresh = () => setTick(t => t + 1);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const allFunc = DB.get<Funcionario>('func');
-  // Esconde demitidos do cadastro principal — eles ficam apenas no Relatório > Demitidos
   const ativosFunc = allFunc.filter(f => !f.demissao);
   const filtered = ativosFunc.filter(f => {
     if (!search) return true;
@@ -34,10 +34,9 @@ export default function FuncionariosPage() {
   const openEdit = (id: number) => { setEditId(id); setModalOpen(true); };
 
   const deleteFunc = (id: number) => {
-    if (!confirm('Excluir este funcionário? Será removido também da planilha.')) return;
     DB.set('func', DB.get<Funcionario>('func').filter(x => x.id !== id));
     logAcesso('Excluiu funcionário ID ' + id, session!.name, session!.user);
-    syncGS(true); // sync imediato (além do auto-sync agendado)
+    syncGS(true);
     refresh();
   };
 
@@ -76,7 +75,7 @@ export default function FuncionariosPage() {
                   <div className="flex gap-1">
                     <Btn size="sm" variant="outline" onClick={() => printFuncionarioPDF(f)}>🖨️</Btn>
                     <Btn size="sm" variant="outline" onClick={() => openEdit(f.id)}>✏️</Btn>
-                    <Btn size="sm" variant="danger" onClick={() => deleteFunc(f.id)}>🗑</Btn>
+                    <Btn size="sm" variant="danger" onClick={() => setConfirmDeleteId(f.id)}>🗑</Btn>
                   </div>
                 </Td>
               </tr>
@@ -95,6 +94,15 @@ export default function FuncionariosPage() {
           session={session!}
         />
       )}
+
+      <ConfirmModal
+        open={confirmDeleteId !== null}
+        title="Excluir Funcionário"
+        message="Este funcionário será removido do sistema e da planilha Google. Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        onConfirm={() => { if (confirmDeleteId !== null) { deleteFunc(confirmDeleteId); setConfirmDeleteId(null); } }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </>
   );
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DB, nextId, syncGS, isDemitido, type BancoRegistro, type Funcionario, logAcesso } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
-import { PageHeader, TableWrapper, Th, Td, Badge, Btn, Modal, FormCard, Field, Input, Select } from '@/components/ui-custom';
+import { PageHeader, TableWrapper, Th, Td, Badge, Btn, Modal, FormCard, Field, Input, Select, ConfirmModal } from '@/components/ui-custom';
 
 export default function BancosPage() {
   const { session } = useAuth();
@@ -10,6 +10,7 @@ export default function BancosPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [, setTick] = useState(0);
   const refresh = () => setTick(t => t + 1);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const funcs = DB.get<Funcionario>('func');
   const demitidosIds = new Set(funcs.filter(isDemitido).map(f => f.id));
@@ -22,7 +23,6 @@ export default function BancosPage() {
   });
 
   const del = (id: number) => {
-    if (!confirm('Excluir este registro? Será removido também da planilha.')) return;
     DB.set('bancos', DB.get<BancoRegistro>('bancos').filter(x => x.id !== id));
     logAcesso('Excluiu banco/PIX ID ' + id, session!.name, session!.user);
     syncGS(true);
@@ -49,7 +49,7 @@ export default function BancosPage() {
                 <Td>
                   <div className="flex gap-1">
                     <Btn size="sm" variant="outline" onClick={() => { setEditId(b.id); setModalOpen(true); }}>✏️</Btn>
-                    <Btn size="sm" variant="danger" onClick={() => del(b.id)}>🗑</Btn>
+                    <Btn size="sm" variant="danger" onClick={() => setConfirmDeleteId(b.id)}>🗑</Btn>
                   </div>
                 </Td>
               </tr>
@@ -59,6 +59,14 @@ export default function BancosPage() {
         </TableWrapper>
       </div>
       {modalOpen && <BancoModal editId={editId} onClose={() => { setModalOpen(false); refresh(); }} session={session!} />}
+      <ConfirmModal
+        open={confirmDeleteId !== null}
+        title="Excluir Banco/PIX"
+        message="Este registro bancário será removido do sistema e da planilha Google."
+        confirmLabel="Excluir"
+        onConfirm={() => { if (confirmDeleteId !== null) { del(confirmDeleteId); setConfirmDeleteId(null); } }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </>
   );
 }

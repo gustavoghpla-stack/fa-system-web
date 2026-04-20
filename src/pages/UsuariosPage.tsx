@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { DB, nextId, hashPassword, isPasswordHash, syncGS, type Usuario, logAcesso } from '@/lib/db';
+import { DB, nextId, hashPassword, isPasswordHash, syncGS, loadFromGS, type Usuario, logAcesso } from '@/lib/db';
 import { useAuth } from '@/contexts/AuthContext';
-import { PageHeader, TableWrapper, Th, Td, Badge, Btn, Modal, FormCard, Field, Input } from '@/components/ui-custom';
+import { PageHeader, TableWrapper, Th, Td, Badge, Btn, Modal, FormCard, Field, Input, ConfirmModal } from '@/components/ui-custom';
 
 const CARGOS_PREDEFINIDOS = ['Operador', 'Estoquista', 'Administrador'];
 
@@ -12,6 +12,7 @@ export default function UsuariosPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [, setTick] = useState(0);
   const refresh = () => setTick(t => t + 1);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const isMaster = session?.nivel === 'Master';
 
   const list = DB.get<Usuario>('users').filter(u => {
@@ -21,16 +22,17 @@ export default function UsuariosPage() {
   });
 
   const del = (id: number) => {
-    if (!confirm('Excluir este usuário? Será removido também da planilha.')) return;
     DB.set('users', DB.get<Usuario>('users').filter(x => x.id !== id));
     logAcesso('Excluiu usuário ID ' + id, session!.name, session!.user);
-    syncGS(true); // sync imediato além do auto-sync de 800ms
+    syncGS(true);
     refresh();
   };
 
   return (
     <>
       <PageHeader title="Usuários do Sistema" icon="👥">
+        <Btn variant="outline" onClick={() => syncGS()}>📤 Enviar para Planilha</Btn>
+        <Btn variant="outline" onClick={() => loadFromGS()}>📥 Carregar da Planilha</Btn>
         <Btn onClick={() => { setEditId(null); setModalOpen(true); }}>➕ Novo Usuário</Btn>
       </PageHeader>
       <div className="flex-1 overflow-y-auto p-5">
@@ -57,7 +59,7 @@ export default function UsuariosPage() {
                 <Td>
                   <div className="flex gap-1">
                     <Btn size="sm" variant="outline" onClick={() => { setEditId(u.id); setModalOpen(true); }}>✏️</Btn>
-                    <Btn size="sm" variant="danger" onClick={() => del(u.id)}>🗑</Btn>
+                    <Btn size="sm" variant="danger" onClick={() => setConfirmDeleteId(u.id)}>🗑</Btn>
                   </div>
                 </Td>
               </tr>
@@ -67,6 +69,14 @@ export default function UsuariosPage() {
         </TableWrapper>
       </div>
       {modalOpen && <UserModal editId={editId} onClose={() => { setModalOpen(false); refresh(); }} session={session!} isMaster={isMaster} />}
+      <ConfirmModal
+        open={confirmDeleteId !== null}
+        title="Excluir Usuário"
+        message="Este usuário será removido do sistema e da planilha Google. Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        onConfirm={() => { if (confirmDeleteId !== null) { del(confirmDeleteId); setConfirmDeleteId(null); } }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </>
   );
 }
@@ -122,7 +132,7 @@ function UserModal({ editId, onClose, session, isMaster }: {
     }
     DB.set('users', list);
     logAcesso((editId ? 'Editou' : 'Cadastrou') + ' usuário: ' + email, session.name, session.user);
-    syncGS(true); // sync imediato para garantir que aparece na planilha
+    syncGS(true);
     onClose();
   };
 

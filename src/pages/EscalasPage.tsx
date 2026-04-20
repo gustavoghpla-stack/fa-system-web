@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { DB, nextId, type Escala } from '@/lib/db';
-import { PageHeader, TableWrapper, Th, Td, Badge, Btn, Modal, FormCard, Field, Input } from '@/components/ui-custom';
+import { DB, nextId, syncGS, type Escala } from '@/lib/db';
+import { PageHeader, TableWrapper, Th, Td, Badge, Btn, Modal, FormCard, Field, Input, ConfirmModal } from '@/components/ui-custom';
 
 export default function EscalasPage() {
   const [search, setSearch] = useState('');
@@ -8,12 +8,13 @@ export default function EscalasPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [, setTick] = useState(0);
   const refresh = () => setTick(t => t + 1);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const list = DB.get<Escala>('escalas').filter(e => !search || e.desc?.toLowerCase().includes(search.toLowerCase()));
 
   const del = (id: number) => {
-    if (!confirm('Excluir esta escala?')) return;
     DB.set('escalas', DB.get<Escala>('escalas').filter(x => x.id !== id));
+    syncGS(true);
     refresh();
   };
 
@@ -34,7 +35,7 @@ export default function EscalasPage() {
                 <Td>
                   <div className="flex gap-1">
                     <Btn size="sm" variant="outline" onClick={() => { setEditId(e.id); setModalOpen(true); }}>✏️</Btn>
-                    <Btn size="sm" variant="danger" onClick={() => del(e.id)}>🗑</Btn>
+                    <Btn size="sm" variant="danger" onClick={() => setConfirmDeleteId(e.id)}>🗑</Btn>
                   </div>
                 </Td>
               </tr>
@@ -44,6 +45,14 @@ export default function EscalasPage() {
         </TableWrapper>
       </div>
       {modalOpen && <EscalaModal editId={editId} onClose={() => { setModalOpen(false); refresh(); }} />}
+      <ConfirmModal
+        open={confirmDeleteId !== null}
+        title="Excluir Escala"
+        message="Esta escala será removida do sistema e da planilha."
+        confirmLabel="Excluir"
+        onConfirm={() => { if (confirmDeleteId !== null) { del(confirmDeleteId); setConfirmDeleteId(null); } }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </>
   );
 }
@@ -59,6 +68,7 @@ function EscalaModal({ editId, onClose }: { editId: number | null; onClose: () =
     if (editId) { const i = list.findIndex(x => x.id === editId); if (i >= 0) list[i] = obj; else list.push(obj); }
     else list.push(obj);
     DB.set('escalas', list);
+    syncGS(true);
     onClose();
   };
 

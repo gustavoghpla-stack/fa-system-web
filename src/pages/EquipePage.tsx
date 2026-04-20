@@ -267,7 +267,7 @@ export default function EquipePage() {
               </ResponsiveContainer>
             </div>
             <div className="bg-card border border-border rounded-xl p-4">
-              <div className="text-[12px] font-bold text-primary mb-3">🏆 Ranking</div>
+              <div className="text-[12px] font-bold text-primary mb-3">🏆 Ranking por Motivo</div>
               <div className="space-y-1.5">
                 {[...motivoChartData].sort((a, b) => b.valor - a.valor).map((m, i) => (
                   <div key={m.key} className={`flex items-center gap-2 p-2 rounded-lg text-[10px] ${m.key === 'dano' ? 'bg-destructive/10 border border-destructive/30' : 'bg-secondary'}`}>
@@ -277,6 +277,66 @@ export default function EquipePage() {
                     <span className={`font-bold ${m.key === 'dano' ? 'text-destructive' : 'text-primary'}`}>{m.valor}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Ranking de Funcionários ── */}
+        {funcionarios.length > 0 && monthAvaliacoes.length > 0 && (
+          <div className="bg-card border border-border rounded-xl p-4 mt-4">
+            <div className="text-[12px] font-bold text-primary mb-3">🌟 Ranking de Funcionários ({MESES[viewMonth - 1]})</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {/* Top Elogios */}
+              <div>
+                <div className="text-[10px] font-bold text-success mb-2 uppercase tracking-wide">👍 Mais Elogios</div>
+                <div className="space-y-1.5">
+                  {funcionarios.map(f => ({ func: f, count: monthAvaliacoes.filter(a => a.funcionarioId === f.id && a.tipo === 'elogio').length }))
+                    .filter(x => x.count > 0).sort((a, b) => b.count - a.count).slice(0, 5).map((x, i) => (
+                      <div key={x.func.id} className="flex items-center gap-2 p-2 rounded-lg bg-success/10 border border-success/30 text-[10px]">
+                        <span className="font-bold text-muted-foreground w-3">{i + 1}.</span>
+                        <span className="flex-1 font-semibold truncate">{x.func.nome}</span>
+                        <span className="font-bold text-success">{x.count}</span>
+                      </div>
+                    ))}
+                  {!funcionarios.some(f => monthAvaliacoes.some(a => a.funcionarioId === f.id && a.tipo === 'elogio')) && (
+                    <div className="text-[10px] text-muted-foreground italic p-2">Nenhum elogio neste mês</div>
+                  )}
+                </div>
+              </div>
+              {/* Top Reclamações */}
+              <div>
+                <div className="text-[10px] font-bold text-destructive mb-2 uppercase tracking-wide">👎 Mais Reclamações</div>
+                <div className="space-y-1.5">
+                  {funcionarios.map(f => ({ func: f, count: monthAvaliacoes.filter(a => a.funcionarioId === f.id && a.tipo === 'reclamacao').length }))
+                    .filter(x => x.count > 0).sort((a, b) => b.count - a.count).slice(0, 5).map((x, i) => (
+                      <div key={x.func.id} className="flex items-center gap-2 p-2 rounded-lg bg-destructive/10 border border-destructive/30 text-[10px]">
+                        <span className="font-bold text-muted-foreground w-3">{i + 1}.</span>
+                        <span className="flex-1 font-semibold truncate">{x.func.nome}</span>
+                        <span className="font-bold text-destructive">{x.count}</span>
+                      </div>
+                    ))}
+                  {!funcionarios.some(f => monthAvaliacoes.some(a => a.funcionarioId === f.id && a.tipo === 'reclamacao')) && (
+                    <div className="text-[10px] text-muted-foreground italic p-2">Nenhuma reclamação neste mês</div>
+                  )}
+                </div>
+              </div>
+              {/* Top Retrabalhos */}
+              <div>
+                <div className="text-[10px] font-bold text-yellow-500 mb-2 uppercase tracking-wide">🔁 Mais Retrabalhos</div>
+                <div className="space-y-1.5">
+                  {funcionarios.map(f => ({ func: f, count: monthAvaliacoes.filter(a => a.funcionarioId === f.id && a.tipo === 'retrabalho').length }))
+                    .filter(x => x.count > 0).sort((a, b) => b.count - a.count).slice(0, 5).map((x, i) => (
+                      <div key={x.func.id} className="flex items-center gap-2 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-[10px]">
+                        <span className="font-bold text-muted-foreground w-3">{i + 1}.</span>
+                        <span className="flex-1 font-semibold truncate">{x.func.nome}</span>
+                        <span className="font-bold text-yellow-500">{x.count}</span>
+                      </div>
+                    ))}
+                  {!funcionarios.some(f => monthAvaliacoes.some(a => a.funcionarioId === f.id && a.tipo === 'retrabalho')) && (
+                    <div className="text-[10px] text-muted-foreground italic p-2">Nenhum retrabalho neste mês</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

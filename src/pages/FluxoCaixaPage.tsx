@@ -40,7 +40,10 @@ export default function FluxoCaixaPage() {
 
   const totalEntradas = monthData.filter(r => r.tipo === 'entrada').reduce((s, r) => s + r.valor, 0);
   const totalSaidas = monthData.filter(r => r.tipo === 'saida').reduce((s, r) => s + r.valor, 0);
-  const saldo = totalEntradas - totalSaidas;
+  // Custos fixos abatem do lucro líquido
+  const custosFixosList = DB.get<CustoFixo>('custos_fixos');
+  const totalCustosFixos = custosFixosList.reduce((s, c) => s + (c.valor || 0), 0);
+  const saldo = totalEntradas - totalSaidas - totalCustosFixos;
 
   // Get meta for current month
   const currentMeta = metas.find(m => m.mes === viewMonth && m.ano === viewYear);
@@ -55,7 +58,8 @@ export default function FluxoCaixaPage() {
     return d.getFullYear() === prevYear && (d.getMonth() + 1) === prevMonth;
   });
   const prevSaldo = prevData.filter(r => r.tipo === 'entrada').reduce((s, r) => s + r.valor, 0)
-    - prevData.filter(r => r.tipo === 'saida').reduce((s, r) => s + r.valor, 0);
+    - prevData.filter(r => r.tipo === 'saida').reduce((s, r) => s + r.valor, 0)
+    - totalCustosFixos;
 
   // Annual chart data
   const annualData = Array.from({ length: 12 }, (_, i) => {
